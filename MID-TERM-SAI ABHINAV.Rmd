@@ -1,0 +1,163 @@
+---
+title: "MID-TERM-SAI ABHINAV"
+author: "smandumu"
+date: "11/1/2019"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+```{r}
+library(gdata)                   # load gdata package 
+library(dplyr)
+library(caret) # For DataSets
+library(e1071) # Functions under Statistics and Propability
+library(readxl)
+set.seed(123)
+UN = read.csv("Universities.csv") # Assigning the CSV file to a Variable
+#View(UN)
+count(UN)
+# Question 1 Removing records with missing measurments
+UNAT <- na.omit(UN)
+count(UNAT)
+#View(UNAT)
+#************#
+# Question 2  
+library(cluster) # Clustering
+library(tidyverse) # Manipulation
+library(factoextra) # Visualization
+UNA1 <- subset(UNAT,select = -c(1,2,3))
+#View(UNA)
+UNA <- scale(UNA1) # Standardizing Data
+head(UNA)
+#View(UNA)
+UNAd <- get_dist(UNA) # Computing Distance
+# Vizualization of Distance matrix
+#fviz_dist(UNAd)
+# Trying with different K values 
+UNAk2<- kmeans(UNA, centers = 2, nstart = 25)
+UNAk3<- kmeans(UNA, centers = 3, nstart = 25)
+UNAk4<- kmeans(UNA, centers = 4, nstart = 25)
+UNAk5<- kmeans(UNA, centers = 5, nstart = 25)
+UNAk6<- kmeans(UNA, centers = 6, nstart = 25)
+UNAk7<- kmeans(UNA, centers = 7, nstart = 25)
+# Graph Plotting
+k2 <- fviz_cluster(UNAk2,data = UNA)
+k3 <- fviz_cluster(UNAk3,data = UNA)
+k4 <- fviz_cluster(UNAk4,data = UNA)
+k5 <- fviz_cluster(UNAk5,data = UNA)
+k6 <- fviz_cluster(UNAk6,data = UNA)
+k7 <- fviz_cluster(UNAk7,data = UNA)
+library(gridExtra)
+#grid.arrange(k2,k3,k4,k5,k6,k7,nrow = 2) # Arranging all Viz to find the best
+
+# Determining Optimal Cluster by Elbow Method
+fviz_nbclust(UNA,kmeans,method = "wss")
+# Determining Optimal Cluster by Average Silhouette Method
+fviz_nbclust(UNA, kmeans, method = "silhouette")
+#Direct Method to find best
+library(NbClust)
+#NbClust(UNA,method = "kmeans") # Finding the Best Number Of Clusters
+#Pulling out the categorical measurements and standardizing the data and computing the distance. We find that 3 clusters are the reasonable for this data and the optimal K is 3.
+Optimal3 <- kmeans(UNA,centers = 3 ,nstart = 25)
+fviz_cluster(Optimal3,data = UNA) # Optimal Visualization
+#************#
+
+# Question 3
+
+# 3 is the Optimal Cluster
+Optimal3 <- kmeans(UNA,centers = 3 ,nstart = 25)
+print(Optimal3)
+Optimal3$centers # Description of the centers
+plot(c(0), xaxt = 'n', ylab = "", type = "l",
+     ylim = c(min(Optimal3$centers), max(Optimal3$centers)), xlim = c(0, 18))
+# label x-axes
+axis(1, at = c(1:17), labels = FALSE)
+text(seq(1,17,by=1),par("usr")[3]-0.2,labels = colnames(UNA),srt = 45,pos =1,xpd = TRUE) # X Measurement names
+# plot centroids
+for (i in c(1:3))
+  lines(Optimal3$centers[i,], lty = i, lwd = 2) 
+# name clusters
+text(x = 0.5, y = Optimal3$centers[, 1], labels = paste("Cluster", c(1:3))) # Cluster Names
+Optimal3$size # Count of Clusters
+
+# cluster 1 has +ve and -ve ,CLuster 2 has +ve and Cluster 3 has more -ve values. 
+#Cluster 1 – Universities with lowest applications received, accepted, Students enrolled from top 10 and 25 with mid-level of full time and part time students, lowest board and additional fees, lowest faculty with PHD and Graduation rate with second highest Student-faculty ratio.
+#Cluster 3– Universities with second highest applications received accepted and enrolled, with highest students from top 10 and 25 with lowest part time and highest in state tuition, room, boarding fees along with second highest additional fee and book costs and lowest personal cost, Holds highest number of PHD faculty with lowest student-faculty ration and highest graduation. 
+#Cluster 2 – Universities with highest application received, accepted, enrolled in Full time  besides lowest in state tuition fees along with second in room, boarding and additional fees with highest books and personal costs and second highest with faculty holding PHD, sets highest student-faculty ratio with second low graduation rate.
+
+#********************#
+# Question 4#
+# Binding clusters result to the main data set
+SS <- cbind(UNAT,Optimal3$cluster)
+SS <- as.data.frame(SS)
+#View(SS)
+Cluster1 <- SS[SS$`Optimal3$cluster` == 1,]
+#View(Cluster1[,c(1,2,3,21)])
+Cluster2 <- SS[SS$`Optimal3$cluster` == 2,]
+#View(Cluster2[,c(1,2,3,21)])
+Cluster3 <- SS[SS$`Optimal3$cluster` == 3,]
+#View(Cluster3[,c(1,2,3,21)])
+library(ggplot2)
+legend <- factor(SS$`Optimal3$cluster`,levels = c(1,2,3),labels = c("Cluster 1","Cluster 2","Cluster 3"))
+ggplot(SS,aes(x=SS$State,y=factor(SS$Public..1...Private..2.,levels = c(1,2),labels = c("Public","Private")),
+        color=legend))+
+         geom_point()+ylab("Public/Private")+xlab("state")+ggtitle("Cluster Plot")
+#Plotted the graph which represents all the public and private colleges along with its cluster. Each state has colleges a maximum of 2 out of the 3 clusters. Yes, there is a relationship between clusters and categorical information. 
+#***********#
+# Question 5
+Optimal3$withinss # within cluster sum of squares with high ratio as possible
+Optimal3$betweenss # mean of distances between cluster centers with ration lower as possible
+Optimal3$size # number of points in each cluster
+Optimal3$centers # CLuster Centers
+#•	Within cluster sum of squares with high ratio as possible
+#•	Mean of distances between cluster centers with ration lower as possible
+#•	Number of points in each cluster
+#•	Cluster Centers
+#•	The k value which the highest $withinss is the best choice, because we expect the within sum of squares ratio to be as lower as possible.
+#****************#
+# Question 6
+library(cluster)
+#View(UNA1)
+K<-kmeans(UNA1,centers = 3)
+b1<-mean(K$centers[1,])
+b2<-mean(K$centers[2,])
+b3<-mean(K$centers[3,])
+a1<-UN[UN$College.Name =="Tufts University",]
+#View(a1)
+
+#View(a1[,-c(1:3)])
+a2<-apply(a1[,-c(1:3,10)],1,mean)
+dist(rbind(a2,b1))
+dist(rbind(a2,b2))
+dist(rbind(a2,b3))
+a1$X..PT.undergrad <- 2452.064
+uni2<-rbind(UNA1,a1[,-c(1:3)])
+#View(uni2)
+uni2_z<-scale(uni2)
+uni2_cluster<-kmeans(uni2_z,3,nstart = 25)
+uni2<-cbind(uni2,uni2_cluster$cluster)
+uni2[472,] # From the model, this uniersity falls under Cluster 2("Above Average")
+# Falls in cluster 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
