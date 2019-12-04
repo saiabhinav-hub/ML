@@ -1,0 +1,75 @@
+---
+title: "smandumu_finalexam"
+author: "smandumu"
+date: "12/4/2019"
+output: html_document
+---
+```{r}
+set.seed(123)
+BS <- read.csv("BathSoap.csv")
+BS
+BSbrand <-BS[,c(12,23:32)]
+BSbrand.s<-scale(BSbrand)
+k_means<-kmeans(BSbrand.s,2,nstart=25)
+BSbrand$Loyal<-k_means$cluster
+#Use k-means clustering to identify clusters of households based on:
+# a.The variables that describe purchase behavior (including brand loyalty)
+#Purchase behavior (volume, frequency, susceptibility to discounts, and brand loyalty)
+BS$loyality<-k_means$cluster
+BSa <- select(BS,"SEC","SEX","AGE","EDU","HS","CHILD","CS","BrandCount","loyality","TotalVolume","Avg.Price","PurVolNoPromo","PurVolPromo6","PurVolOtherPromo")
+BSa
+BSaScale <- scale(BSa)
+library(NbClust)
+NbClust(BSaScale,method = "kmeans") # Finding the Best Number Of Clusters Comparing with Most of the methods
+NbClust(data = BSaScale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
+# According to the majority rule, the best number of clusters is  2
+# Traditional Approches
+fviz_nbclust(BSaScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
+fviz_nbclust(BSaScale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
+fviz_nbclust(BSaScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
+# 3 is the best cluster from 3 approches
+BSaK <- kmeans(BSaScale,centers = 3,nstart = 25)
+fviz_cluster(BSaK,data = BSa,main = "Clusters with Purchase behavior")
+library(cluster) # Allow us to represent the cluster solution into 2 dimensions
+clusplot(BSaScale,BSaK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = '2D-Representation of the Cluster solution - Purchase Behavior')
+#************End of a*************#
+
+#b.The variables that describe the basis for purchase
+#Basis of purchase (price, selling proposition)
+BSb <- select(BS,"SEX","AGE","EDU","HS","CHILD","CS","PrCat1","PrCat2","PrCat3","PrCat4","PropCat5","PropCat6","PropCat7","PropCat8","PropCat9","PropCat10","PropCat11","PropCat12","PropCat13","PropCat14","PropCat15")
+BSb
+BSbScale <- scale(BSb)
+NbClust(BSbScale,method = "kmeans") # Finding the Best Number Of Clusters Comparing with Most of the methods
+NbClust(data = BSbScale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
+# According to the majority rule, the best number of clusters is  3
+# Traditional Approches
+fviz_nbclust(BSbScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
+fviz_nbclust(BSbScale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
+fviz_nbclust(BSbScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
+# 3 is the best cluster from 3 approches
+BSbK <- kmeans(BSbScale,centers = 3,nstart = 25)
+fviz_cluster(BSbK,data = BSa,main = "Clusters with Basis of Purchase")
+# Allow us to represent the cluster solution into 2 dimensions
+clusplot(BSbScale,BSbK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = '2D-Representation of the Cluster solution - Purchase Behavior')
+#***************End of b**************#
+
+#c.The variables that describe both purchase behavior and basis of purchase
+BSc <- select(BS,"Avg.Price","loyality","BrandCount","BrandRuns","PurVolNoPromo","PrCat1","PrCat2","PrCat3","PrCat4")
+BSc
+BScScale <- scale(BSc)
+NbClust(data = BScScale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
+# According to the majority rule, the best number of clusters is  4
+# Traditional Approches
+fviz_nbclust(BScScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
+fviz_nbclust(BScScale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
+fviz_nbclust(BScScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
+#
+BScK <- kmeans(BScScale,centers =3,nstart = 25)
+fviz_cluster(BScK,data = BSa,main = "Clusters with Basis of Purchase")
+
+clusplot(BScScale,BScK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = '2D-Representation of the Cluster solution - Purchase Behavior')
+
+summary(BScK)
+BScK$tot.withinss
+
+```
