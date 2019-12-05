@@ -5,71 +5,132 @@ date: "12/4/2019"
 output: html_document
 ---
 ```{r}
+library(dplyr)
+library(NbClust)
+library(factoextra)
 set.seed(123)
 BS <- read.csv("BathSoap.csv")
-BS
-BSbrand <-BS[,c(12,23:32)]
-BSbrand.s<-scale(BSbrand)
-k_means<-kmeans(BSbrand.s,2,nstart=25)
-BSbrand$Loyal<-k_means$cluster
-#Use k-means clustering to identify clusters of households based on:
+#BS
+BrandLoyality <- select(BS,"Br.Cd.7.144","Br.Cd.55","Br.Cd.272","Br.Cd.286","Br.Cd.24","Br.Cd.481","Br.Cd.352","Br.Cd.5")
+BS$Loyality <- apply(BrandLoyality,MARGIN = 1,FUN = max)
+BS$LoyalBrand_1_8 <- max.col(BrandLoyality)
+Brand_Other <- select(BS,"Loyality","Others999")
+BS$Brand_1_Other_2_Loyal <- max.col(Brand_Other)
+#View(BS)
+#1.Use k-means clustering to identify clusters of households based on:
 # a.The variables that describe purchase behavior (including brand loyalty)
 #Purchase behavior (volume, frequency, susceptibility to discounts, and brand loyalty)
-BS$loyality<-k_means$cluster
-BSa <- select(BS,"SEC","SEX","AGE","EDU","HS","CHILD","CS","BrandCount","loyality","TotalVolume","Avg.Price","PurVolNoPromo","PurVolPromo6","PurVolOtherPromo")
-BSa
+BSa <- select(BS,"BrandCount","BrandRuns","TotalVolume","No.ofTrans","Value",
+              "Trans_BrandRuns","Avg.Price",
+              "PurVolNoPromo","PurVolPromo6","PurVolOtherPromo","Brand_1_Other_2_Loyal","LoyalBrand_1_8")
+#BSa
+#View(BSa)
 BSaScale <- scale(BSa)
 library(NbClust)
-NbClust(BSaScale,method = "kmeans") # Finding the Best Number Of Clusters Comparing with Most of the methods
+# Finding the Best Number Of Clusters Comparing with Most of the methods
 NbClust(data = BSaScale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
-# According to the majority rule, the best number of clusters is  2
-# Traditional Approches
-fviz_nbclust(BSaScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
-fviz_nbclust(BSaScale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
-fviz_nbclust(BSaScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
-# 3 is the best cluster from 3 approches
-BSaK <- kmeans(BSaScale,centers = 3,nstart = 25)
-fviz_cluster(BSaK,data = BSa,main = "Clusters with Purchase behavior")
-library(cluster) # Allow us to represent the cluster solution into 2 dimensions
-clusplot(BSaScale,BSaK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = '2D-Representation of the Cluster solution - Purchase Behavior')
-#************End of a*************#
-
-#b.The variables that describe the basis for purchase
-#Basis of purchase (price, selling proposition)
-BSb <- select(BS,"SEX","AGE","EDU","HS","CHILD","CS","PrCat1","PrCat2","PrCat3","PrCat4","PropCat5","PropCat6","PropCat7","PropCat8","PropCat9","PropCat10","PropCat11","PropCat12","PropCat13","PropCat14","PropCat15")
-BSb
-BSbScale <- scale(BSb)
-NbClust(BSbScale,method = "kmeans") # Finding the Best Number Of Clusters Comparing with Most of the methods
-NbClust(data = BSbScale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
 # According to the majority rule, the best number of clusters is  3
 # Traditional Approches
-fviz_nbclust(BSbScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
-fviz_nbclust(BSbScale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
-fviz_nbclust(BSbScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
+#fviz_nbclust(BSaScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
+fviz_nbclust(BSaScale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
+#fviz_nbclust(BSaScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
 # 3 is the best cluster from 3 approches
-BSbK <- kmeans(BSbScale,centers = 3,nstart = 25)
-fviz_cluster(BSbK,data = BSa,main = "Clusters with Basis of Purchase")
-# Allow us to represent the cluster solution into 2 dimensions
-clusplot(BSbScale,BSbK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = '2D-Representation of the Cluster solution - Purchase Behavior')
-#***************End of b**************#
-
-#c.The variables that describe both purchase behavior and basis of purchase
-BSc <- select(BS,"Avg.Price","loyality","BrandCount","BrandRuns","PurVolNoPromo","PrCat1","PrCat2","PrCat3","PrCat4")
-BSc
-BScScale <- scale(BSc)
-NbClust(data = BScScale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
+BSaK <- kmeans(BSaScale,centers = 3,nstart = 25)
+#fviz_cluster(BSaK,data = BSa,main = "Clusters with Purchase behavior")
+library(cluster) # Allow us to represent the cluster solution into 2 dimensions
+#clusplot(BSaScale,BSaK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,
+#         main = '2D-Representation of the Cluster solution - Purchase Behavior')
+BSaK$size
+#dev.off()
+barplot(BSaK$centers,beside = TRUE,col = rainbow(3),cex.names = .7,las=2,
+        args.legend = list(x ='topright', bty='n'),legend.text = (1:nrow(BSaK$centers)))
+#************End of a*************#
+#b.The variables that describe the basis for purchase
+#Basis of purchase (price, selling proposition)
+BSb <- select(BS,"PrCat1","PrCat2","PrCat3","PrCat4",
+              "PropCat5","PropCat6","PropCat7","PropCat8","PropCat9","PropCat10",
+              "PropCat11","PropCat12","PropCat13","PropCat14","PropCat15",
+              "PurVolNoPromo","PurVolPromo6","PurVolOtherPromo")
+#BSb
+BSbScale <- scale(BSb)
+# Finding the Best Number Of Clusters Comparing with Most of the methods
+NbClust(data = BSbScale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
 # According to the majority rule, the best number of clusters is  4
 # Traditional Approches
-fviz_nbclust(BScScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
+#fviz_nbclust(BSbScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
+fviz_nbclust(BSbScale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
+#fviz_nbclust(BSbScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
+# 4,9 are the best cluster from 3 approches
+BSbK <- kmeans(BSbScale,centers = 4,nstart = 25)
+#fviz_cluster(BSbK,data = BSa,main = "Clusters with Basis of Purchase")
+# Allow us to represent the cluster solution into 2 dimensions
+#clusplot(BSbScale,BSbK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = #'2D-Representation of the Cluster solution - Purchase Behavior')
+BSaK$size
+#dev.off()
+barplot(BSbK$centers,beside = TRUE,col = rainbow(4),cex.names = .7,las=2,
+        args.legend = list(x ='topright', bty='n'),legend.text = (1:nrow(BSbK$centers)))
+#***************End of b**************#
+#c.The variables that describe both purchase behavior and basis of purchase
+BSc <- select(BS,"BrandCount","BrandRuns","TotalVolume","No.ofTrans","Value",
+              "Trans_BrandRuns","Avg.Price",
+              "PurVolNoPromo","PurVolPromo6","PurVolOtherPromo","Brand_1_Other_2_Loyal","LoyalBrand_1_8",
+              "PrCat1","PrCat2","PrCat3","PrCat4",
+              "PropCat5","PropCat6","PropCat7","PropCat8","PropCat9","PropCat10",
+              "PropCat11","PropCat12","PropCat13","PropCat14","PropCat15",
+              "PurVolNoPromo","PurVolPromo6","PurVolOtherPromo")
+#View(BSc)
+BScScale <- scale(BSc)
+NbClust(data = BScScale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
+# According to the majority rule, the best number of clusters is  3
+# Traditional Approches
+#fviz_nbclust(BScScale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
 fviz_nbclust(BScScale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
-fviz_nbclust(BScScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
-#
+#fviz_nbclust(BScScale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
+#3 is the best cluster from 3 approches
 BScK <- kmeans(BScScale,centers =3,nstart = 25)
-fviz_cluster(BScK,data = BSa,main = "Clusters with Basis of Purchase")
+#fviz_cluster(BScK,data = BSa,main = "Clusters with Basis of Purchase")
+# Allow us to represent the cluster solution into 2 dimensions
+#clusplot(BScScale,BScK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = #'2D-Representation of the Cluster solution - Purchase Behavior')
+BScK$size
+#dev.off()
+barplot(BScK$centers,beside = TRUE,col = rainbow(3),cex.names = .7,las=2,
+        args.legend = list(x ='topright', bty='n'),legend.text = (1:nrow(BScK$centers)))
+#***************End of c**************#
 
-clusplot(BScScale,BScK$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = '2D-Representation of the Cluster solution - Purchase Behavior')
-
-summary(BScK)
-BScK$tot.withinss
-
+#2.Select what you think is the best segmentation and comment on the characteristics (demographic,brand loyalty, and basis for purchase) of these clusters. 
+BS2 <- select(BS,"Brand_1_Other_2_Loyal","LoyalBrand_1_8",
+              "PrCat1","PrCat2","PrCat3","PrCat4",
+              "PropCat5","PropCat6","PropCat7","PropCat8","PropCat9","PropCat10",
+              "PropCat11","PropCat12","PropCat13","PropCat14","PropCat15",
+              "PurVolNoPromo","PurVolPromo6","PurVolOtherPromo",
+              "SEC","FEH","MT","SEX","EDU","HS","CS",
+              "Br.Cd.7.144","Br.Cd.55","Br.Cd.272","Br.Cd.286","Br.Cd.24","Br.Cd.481","Br.Cd.352","Br.Cd.5","Others999")
+#View(BS2)
+BS2Scale <- scale(BS2)
+NbClust(data = BS2Scale,distance = "euclidean",min.nc = 2, max.nc = 15, method = "kmeans")
+# According to the majority rule, the best number of clusters is  3
+# Traditional Approches
+#fviz_nbclust(BS2Scale, kmeans, method = "silhouette") +labs(subtitle = "Silhouette method")
+fviz_nbclust(BS2Scale, kmeans, method = "wss")+labs(subtitle = "Elbow method")
+#fviz_nbclust(BS2Scale, kmeans, method = "gap_stat",nstart = 25,nboot = 50,iter.max =30)+labs(subtitle = "Gap statistic method")
+#3 is the best cluster from 3 approches
+BS2K <- kmeans(BS2Scale,centers =3,nstart = 25)
+#fviz_cluster(BS2K,data = BSa,main = "Clusters with Basis of Purchase")
+# Allow us to represent the cluster solution into 2 dimensions
+#clusplot(BS2Scale,BS2K$cluster,lines = 0,labels = 2,shade = TRUE,color = TRUE,main = #'2D-Representation of the Cluster solution - Purchase Behavior')
+BS2K$size
+#dev.off()
+barplot(BS2K$centers,beside = TRUE,col = rainbow(3),cex.names = .7,las=2,
+        args.legend = list(x ='topright', bty='n'),legend.text = (1:nrow(BS2K$centers)))
+#***************End of 2**************#
+# Question 3 #
+BS2$Cluster <- BS2K$cluster
+BS2K$size
+Mail <- BS2[BS2$Cluster==1,]
+View(Mail) # Exclude these Members
+# Excluding these people as they are loyal so we need to exclude the 470 out of the total 600 entries.
+# So therefore on targeting direct-mail promotions for this market segment would succeed 
+#********* End of Question 3********
 ```
+
+
